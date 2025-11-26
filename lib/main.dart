@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutters/statistik_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-
+import 'statistik_screen.dart';
+import 'login_page.dart';
+import 'splash_screen.dart'; // <--- 1. Pastikan ini di-import
 
 // --- 1. DATA MODEL & DUMMY DATA ---
-// Kita buat class agar data rapi dan bisa dipanggil di mana saja
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
   runApp(const MyApp());
 }
 
@@ -25,7 +24,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LoginPage(),
+      title: 'Wallet Helper', // Sesuaikan nama aplikasi
+      theme: ThemeData(
+        textTheme: GoogleFonts.poppinsTextTheme(),
+        useMaterial3: true,
+      ),
+      // 2. Ubah home menjadi SplashScreen agar muncul duluan
+      home: const SplashScreen(),
     );
   }
 }
@@ -59,27 +64,6 @@ List<Transaction> allTransactions = [
   Transaction(title: "Freelance", subtitle: "Project pembuatan web", amount: 500000, isIncome: true, icon: Icons.laptop_mac, color: Colors.green),
 ];
 
-void main() {
-  runApp(const FinanceApp());
-}
-
-class FinanceApp extends StatelessWidget {
-  const FinanceApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Aplikasi Keuangan Ripia',
-      theme: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(),
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
-    );
-  }
-}
-
 // --- 2. HALAMAN UTAMA (HOME) ---
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -104,7 +88,26 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   const Text("Selamat Datang Kembali", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 24),
-
+                  // Banner Motivasi (Saya kembalikan agar tampilan tidak kosong)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.auto_awesome, color: Colors.yellowAccent),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            "Kamu luar biasa! Jaga kebiasaan baikmu ☀️",
+                            style: TextStyle(color: Colors.white, fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -142,9 +145,8 @@ class HomeScreen extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: GestureDetector( // <-- Tambahkan ini
+                          child: GestureDetector(
                             onTap: () {
-                              // Navigasi ke Halaman Statistik
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const StatistikScreen()),
@@ -153,13 +155,13 @@ class HomeScreen extends StatelessWidget {
                             child: const ActionButton(icon: Icons.pie_chart, label: "Statistik"),
                           ),
                         ),
-                        SizedBox(width: 16),
-                        Expanded(child: ActionButton(icon: Icons.history, label: "Riwayat")),
+                        const SizedBox(width: 16),
+                        const Expanded(child: ActionButton(icon: Icons.history, label: "Riwayat")),
                       ],
                     ),
                     const SizedBox(height: 20),
 
-                    // --- BAGIAN TRANSAKSI TERAKHIR (UPDATE DI SINI) ---
+                    // --- BAGIAN TRANSAKSI TERAKHIR ---
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
@@ -172,7 +174,6 @@ class HomeScreen extends StatelessWidget {
                               const Text("Transaksi Terakhir", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                               GestureDetector(
                                 onTap: () {
-                                  // Navigasi ke Halaman Riwayat
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (context) => const HistoryScreen()),
@@ -190,7 +191,7 @@ class HomeScreen extends StatelessWidget {
                           // Menampilkan HANYA 3 transaksi teratas
                           ...allTransactions.take(3).map((transaksi) {
                             return TransactionItem(data: transaksi);
-                          }),
+                          }).toList(),
                         ],
                       ),
                     ),
@@ -219,27 +220,26 @@ class HistoryScreen extends StatelessWidget {
         elevation: 0,
         title: const Text("Riwayat Transaksi", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black), // Tombol back hitam
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        // ListView.builder lebih efisien untuk list panjang
         child: ListView.builder(
           itemCount: allTransactions.length,
           itemBuilder: (context, index) {
             final transaksi = allTransactions[index];
             return Container(
-              margin: const EdgeInsets.only(bottom: 10), // Jarak antar item
+              margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade100), // Garis tipis
+                border: Border.all(color: Colors.grey.shade100),
                 boxShadow: [
                   BoxShadow(color: Colors.grey.withOpacity(0.05), spreadRadius: 1, blurRadius: 5),
                 ],
               ),
-              child: TransactionItem(data: transaksi), // Reuse widget yang sama
+              child: TransactionItem(data: transaksi),
             );
           },
         ),
@@ -250,7 +250,6 @@ class HistoryScreen extends StatelessWidget {
 
 // --- WIDGET COMPONENTS ---
 
-// Helper Format Rupiah
 String formatRupiah(int amount) {
   return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
 }
@@ -299,7 +298,6 @@ class ActionButton extends StatelessWidget {
   }
 }
 
-// Widget Item Transaksi (UPDATED: Menerima object Transaction)
 class TransactionItem extends StatelessWidget {
   final Transaction data;
 
