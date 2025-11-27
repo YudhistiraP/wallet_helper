@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+
 import 'add_note.dart';
 import 'transaction_detail_dialog.dart';
 import 'balance_card.dart';
@@ -80,21 +81,24 @@ class _HomePageState extends State<HomePage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Halo!",
-                          style: GoogleFonts.poppins(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87)),
-                      Text("Selamat datang kembali",
-                          style: GoogleFonts.poppins(
-                              fontSize: 14, color: Colors.black54)),
+                      Text(
+                        "Halo!",
+                        style: GoogleFonts.poppins(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87),
+                      ),
+                      Text(
+                        "Selamat datang kembali",
+                        style: GoogleFonts.poppins(
+                            fontSize: 14, color: Colors.black54),
+                      ),
                     ],
                   ),
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (context) => const SettingsPage()),
+                      MaterialPageRoute(builder: (context) => const SettingsPage()),
                     ),
                     child: Container(
                       decoration: BoxDecoration(
@@ -108,8 +112,7 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                       padding: const EdgeInsets.all(8),
-                      child:
-                      const Icon(Icons.person, color: Colors.black54),
+                      child: const Icon(Icons.person, color: Colors.black54),
                     ),
                   ),
                 ],
@@ -121,9 +124,9 @@ class _HomePageState extends State<HomePage> {
               onPrevMonth: () => _changeMonth(-1),
               onNextMonth: () => _changeMonth(1),
               onSelectMonth: _selectMonth,
-              totalBalance: null,
-              totalIncome: null,
-              totalExpense: null,
+              totalBalance: 0,
+              totalIncome: 0,
+              totalExpense: 0,
             ),
 
             Expanded(
@@ -138,8 +141,7 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   children: [
                     Padding(
-                      padding:
-                      const EdgeInsets.fromLTRB(24, 20, 24, 10),
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -147,15 +149,13 @@ class _HomePageState extends State<HomePage> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) =>
-                                  const CalendarPage()),
+                                  builder: (context) => const CalendarPage()),
                             ),
                             child: Row(
                               children: [
                                 Text("Selengkapnya",
                                     style: GoogleFonts.poppins(
-                                        color: Colors.black54,
-                                        fontSize: 12)),
+                                        color: Colors.black54, fontSize: 12)),
                                 const SizedBox(width: 4),
                                 const Icon(Icons.arrow_forward_ios,
                                     size: 10, color: Colors.black54),
@@ -177,8 +177,7 @@ class _HomePageState extends State<HomePage> {
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
-                            return const Center(
-                                child: CircularProgressIndicator());
+                            return const Center(child: CircularProgressIndicator());
                           }
 
                           if (!snapshot.hasData ||
@@ -191,8 +190,8 @@ class _HomePageState extends State<HomePage> {
                           final docs = snapshot.data!.docs;
 
                           return ListView.builder(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20),
+                            padding:
+                            const EdgeInsets.symmetric(horizontal: 20),
                             itemCount: docs.length,
                             itemBuilder: (context, index) {
                               final d = docs[index].data()
@@ -201,15 +200,13 @@ class _HomePageState extends State<HomePage> {
                               final amount = d['amount'];
                               final type = d['type'];
                               final date =
-                              (d['created'] as Timestamp)
-                                  .toDate();
+                              (d['created'] as Timestamp).toDate();
 
                               return _buildTransactionCard(
                                 title: title,
                                 subtitle: type,
-                                amount: type == 'expense'
-                                    ? -amount
-                                    : amount,
+                                amount:
+                                type == 'expense' ? -amount : amount,
                                 icon: type == "income"
                                     ? Icons.trending_up
                                     : Icons.trending_down,
@@ -258,17 +255,20 @@ class _HomePageState extends State<HomePage> {
         onTap: (index) {
           setState(() => _currentIndex = index);
           if (index == 1) {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const WalletPage()))
-                .then((_) => setState(() => _currentIndex = 0));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WalletPage()),
+            ).then((_) => setState(() => _currentIndex = 0));
           } else if (index == 2) {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const StatisticsPage()))
-                .then((_) => setState(() => _currentIndex = 0));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const StatisticsPage()),
+            ).then((_) => setState(() => _currentIndex = 0));
           } else if (index == 3) {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const SettingsPage()))
-                .then((_) => setState(() => _currentIndex = 0));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsPage()),
+            ).then((_) => setState(() => _currentIndex = 0));
           }
         },
         type: BottomNavigationBarType.fixed,
@@ -285,7 +285,8 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(
               icon: Icon(Icons.account_balance_wallet_outlined),
               label: "Wallet"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Statistics"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart), label: "Statistics"),
           BottomNavigationBarItem(
               icon: Icon(Icons.settings_outlined), label: "Settings"),
         ],
@@ -316,8 +317,7 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 2),
-        padding:
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: const BoxDecoration(color: Colors.white),
         child: Row(
           children: [
@@ -349,7 +349,9 @@ class _HomePageState extends State<HomePage> {
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: amount < 0 ? const Color(0xFFFF5252) : Colors.green,
+                color: amount < 0
+                    ? const Color(0xFFFF5252)
+                    : Colors.green,
               ),
             ),
           ],
@@ -358,4 +360,3 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-
