@@ -7,19 +7,15 @@ class FontService {
 
   /// Ambil ukuran font user dari Firestore
   static Future<String> getFontSize() async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('settings')
-          .doc('user')
-          .get();
+    final user = _auth.currentUser;
+    if (user == null) return "Medium"; // default
 
-      return doc['fontSize'] ?? "Medium";
-    } catch (e) {
-      print("FontService error: $e");
-      return "Medium";
-    }
+    final doc = await _firestore.collection("users").doc(user.uid).get();
+
+    if (!doc.exists) return "Medium";
+
+    return doc.data()?["fontSize"] ?? "Medium";
   }
-
 
   /// Simpan ukuran font ke Firestore
   static Future<void> saveFontSize(String size) async {

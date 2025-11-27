@@ -18,13 +18,7 @@ class _AddNotePageState extends State<AddNotePage> {
   bool loading = false;
 
   Future<void> saveTransaction() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      show("User belum login");
-      return;
-    }
-
-    final uid = user.uid;
+    final uid = FirebaseAuth.instance.currentUser!.uid;
     final title = titleController.text.trim();
     final amountText = amountController.text.trim();
 
@@ -42,65 +36,18 @@ class _AddNotePageState extends State<AddNotePage> {
     try {
       setState(() => loading = true);
 
-      final firestore = FirebaseFirestore.instance;
-
-      final transactionRef = firestore
+      await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .collection('transactions')
-          .doc();
-
-      final walletRef = firestore
-          .collection('users')
-          .doc(uid)
-          .collection('meta')
-          .doc('wallet');
-
-      // ============================
-      // 1) SIMPAN TRANSAKSI
-      // ============================
-      await transactionRef.set({
+          .add({
         "title": title,
         "amount": amount,
         "type": type,
         "created": Timestamp.now(),
       });
 
-      // ============================
-      // 2) UPDATE WALLET (BALANCE)
-      // ============================
-      await firestore.runTransaction((tx) async {
-        final snap = await tx.get(walletRef);
-
-        double balance = 0;
-        double income = 0;
-        double expenses = 0;
-
-        if (snap.exists) {
-          final data = snap.data()!;
-          balance = (data['balance'] ?? 0).toDouble();
-          income = (data['income'] ?? 0).toDouble();
-          expenses = (data['expenses'] ?? 0).toDouble();
-        }
-
-        if (type == "income") {
-          balance += amount;
-          income += amount;
-        } else {
-          balance -= amount;
-          expenses += amount;
-        }
-
-        tx.set(walletRef, {
-          "balance": balance,
-          "income": income,
-          "expenses": expenses,
-          "updated": Timestamp.now(),
-        }, SetOptions(merge: true));
-      });
-
       if (mounted) Navigator.pop(context);
-
     } catch (e) {
       show(e.toString());
     } finally {

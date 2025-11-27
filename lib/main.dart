@@ -2,31 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'home_page.dart';
 import 'splash_screen.dart';
-import 'login_page.dart';
 import 'service/font_service.dart';
 
 String globalFontSize = "Medium";
 
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
   await initializeDateFormatting('id', null);
-
-
-  runApp(MyApp());
-  FontService.getFontSize().then((value) {
-    globalFontSize = value;
-  });
+  // Load font user saat aplikasi dibuka
+  globalFontSize = await FontService.getFontSize();
+  runApp(const MyApp());
 }
-
 double getFontSize(String size) {
   switch (size) {
     case "Small":
@@ -39,7 +42,7 @@ double getFontSize(String size) {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  const MyApp({super.key}); // ⬅ super.key tetap dipakai
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -61,7 +64,7 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/login': (context) => const LoginPage(),
         '/home': (context) => const HomePage(),
-      },
+      }
     );
   }
 }
