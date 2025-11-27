@@ -19,28 +19,55 @@ class _LoginPageState extends State<LoginPage> {
   bool isObscure = true;
 
   Future<void> login() async {
-    setState(() => isLoading = true);
+    FocusScope.of(context).unfocus();
+
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      showError("Email dan password wajib diisi");
+      return;
+    }
+
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+      setState(() => isLoading = true);
+
+      final result = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      debugPrint("LOGIN OK UID: ${result.user?.uid}");
 
       if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message ?? "Terjadi kesalahan"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      debugPrint("LOGIN ERROR: ${e.code}");
+      showError(e.message ?? e.code);
+    } catch (e) {
+      debugPrint("CRASH: $e");
+      showError(e.toString());
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  void showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -56,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
+                SizedBox(
                   height: 250,
                   width: double.infinity,
                   child: Image.asset(
@@ -64,13 +91,13 @@ class _LoginPageState extends State<LoginPage> {
                     fit: BoxFit.contain,
                   ),
                 ),
-
                 const SizedBox(height: 20),
 
                 Text("Email", style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
@@ -103,9 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                         color: Colors.grey,
                       ),
                       onPressed: () {
-                        setState(() {
-                          isObscure = !isObscure;
-                        });
+                        setState(() => isObscure = !isObscure);
                       },
                     ),
                   ),
@@ -114,7 +139,9 @@ class _LoginPageState extends State<LoginPage> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      showError("Belum diimplementasi");
+                    },
                     child: Text(
                       "Forgot Password?",
                       style: GoogleFonts.poppins(
@@ -149,9 +176,7 @@ class _LoginPageState extends State<LoginPage> {
                         style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
-
                     const SizedBox(height: 12),
-
                     ElevatedButton(
                       onPressed: () {
                         Navigator.push(
@@ -194,23 +219,14 @@ class _LoginPageState extends State<LoginPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _socialButton(
-                      imagePath: 'assets/images/google.png',
-                      onTap: () {
-                      },
-                    ),
+                    _socialButton(imagePath: 'assets/images/google.png', onTap: null),
                     const SizedBox(width: 20),
-                    _socialButton(
-                      imagePath: 'assets/images/facebook.png',
-                      onTap: () {},
-                    ),
+                    _socialButton(imagePath: 'assets/images/facebook.png', onTap: null),
                     const SizedBox(width: 20),
-                    _socialButton(
-                      imagePath: 'assets/images/apple.png',
-                      onTap: () {},
-                    ),
+                    _socialButton(imagePath: 'assets/images/apple.png', onTap: null),
                   ],
                 ),
+
                 const SizedBox(height: 30),
               ],
             ),
@@ -231,17 +247,14 @@ class _LoginPageState extends State<LoginPage> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 5,
-                spreadRadius: 1
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              spreadRadius: 1,
             ),
           ],
         ),
         padding: const EdgeInsets.all(12),
-        child: Image.asset(
-          imagePath,
-          fit: BoxFit.contain,
-        ),
+        child: Image.asset(imagePath, fit: BoxFit.contain),
       ),
     );
   }
