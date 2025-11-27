@@ -11,6 +11,7 @@ import 'statistic_pages/statistics_page.dart';
 import 'settings_page.dart';
 import 'wallet_pages/wallet_page.dart';
 import 'calculator.dart';
+import 'category_icon_map.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -38,13 +39,14 @@ class _HomePageState extends State<HomePage> {
       initialDatePickerMode: DatePickerMode.year,
     );
 
-    if (picked != null && picked != currentDate) {
+    if (picked != null) {
       setState(() {
         currentDate = DateTime(picked.year, picked.month);
       });
     }
   }
 
+  // ✅ MONTHLY SUMMARY (BACKEND CONNECTED)
   Future<Map<String, int>> _getMonthlySummary(String uid) async {
     final start = DateTime(currentDate.year, currentDate.month, 1);
     final end = DateTime(currentDate.year, currentDate.month + 1, 1);
@@ -63,16 +65,16 @@ class _HomePageState extends State<HomePage> {
     for (var d in snap.docs) {
       final data = d.data();
       if (data['type'] == 'income') {
-        income += (data['amount'] as int);
+        income += data['amount'] as int;
       } else {
-        expense += (data['amount'] as int);
+        expense += data['amount'] as int;
       }
     }
 
     return {
-      "income": income,
-      "expense": expense,
-      "balance": income - expense,
+      'income': income,
+      'expense': expense,
+      'balance': income - expense,
     };
   }
 
@@ -84,17 +86,14 @@ class _HomePageState extends State<HomePage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacementNamed(context, '/login');
       });
-
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final uid = user.uid;
 
     Color yellowColor = const Color(0xFFFFF78A);
     Color peachColor = const Color(0xFFF6A987);
-    String formattedDate = DateFormat('MMM/yyyy').format(currentDate);
+    String formattedDate = DateFormat('MMM yyyy').format(currentDate);
 
     return Scaffold(
       backgroundColor: yellowColor,
@@ -122,25 +121,21 @@ class _HomePageState extends State<HomePage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Halo!",
-                        style: GoogleFonts.poppins(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87),
-                      ),
-                      Text(
-                        "Selamat datang kembali",
-                        style: GoogleFonts.poppins(
-                            fontSize: 14, color: Colors.black54),
-                      ),
+                      Text("Halo!",
+                          style: GoogleFonts.poppins(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87)),
+                      Text("Selamat datang kembali",
+                          style: GoogleFonts.poppins(
+                              fontSize: 14, color: Colors.black54)),
                     ],
                   ),
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const SettingsPage()),
+                          builder: (_) => const SettingsPage()),
                     ),
                     child: Container(
                       decoration: BoxDecoration(
@@ -148,37 +143,36 @@ class _HomePageState extends State<HomePage> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4)),
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
                       padding: const EdgeInsets.all(8),
-                      child: const Icon(Icons.person, color: Colors.black54),
+                      child:
+                          const Icon(Icons.person, color: Colors.black54),
                     ),
                   ),
                 ],
               ),
             ),
 
-            // ✅ SUMMARY CARD CONNECTED TO FIRESTORE
+            // ✅ BALANCE CARD
             FutureBuilder<Map<String, int>>(
               future: _getMonthlySummary(uid),
-              builder: (context, snapshot) {
-                final data = snapshot.data ?? {
-                  "income": 0,
-                  "expense": 0,
-                  "balance": 0,
-                };
+              builder: (_, snap) {
+                final d = snap.data ??
+                    {'income': 0, 'expense': 0, 'balance': 0};
 
                 return BalanceCard(
                   formattedDate: formattedDate,
                   onPrevMonth: () => _changeMonth(-1),
                   onNextMonth: () => _changeMonth(1),
                   onSelectMonth: _selectMonth,
-                  totalBalance: data["balance"]!,
-                  totalIncome: data["income"]!,
-                  totalExpense: data["expense"]!,
+                  totalBalance: d['balance']!,
+                  totalIncome: d['income']!,
+                  totalExpense: d['expense']!,
                 );
               },
             ),
@@ -189,8 +183,9 @@ class _HomePageState extends State<HomePage> {
                 decoration: BoxDecoration(
                   color: peachColor,
                   borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30)),
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(30),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -203,13 +198,14 @@ class _HomePageState extends State<HomePage> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const CalendarPage()),
+                                  builder: (_) => const CalendarPage()),
                             ),
                             child: Row(
                               children: [
                                 Text("Selengkapnya",
                                     style: GoogleFonts.poppins(
-                                        color: Colors.black54, fontSize: 12)),
+                                        color: Colors.black54,
+                                        fontSize: 12)),
                                 const SizedBox(width: 4),
                                 const Icon(Icons.arrow_forward_ios,
                                     size: 10, color: Colors.black54),
@@ -227,48 +223,52 @@ class _HomePageState extends State<HomePage> {
                             .collection('transactions')
                             .orderBy('created', descending: true)
                             .snapshots(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
+                        builder: (_, snap) {
+                          if (!snap.hasData) {
                             return const Center(
                                 child: CircularProgressIndicator());
                           }
 
-                          if (!snapshot.hasData ||
-                              snapshot.data!.docs.isEmpty) {
+                          final docs = snap.data!.docs;
+
+                          if (docs.isEmpty) {
                             return const Center(
-                              child: Text("Belum ada transaksi."),
-                            );
+                                child: Text("Belum ada transaksi."));
                           }
 
-                          final docs = snapshot.data!.docs;
-
                           return ListView.builder(
-                            padding:
-                            const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             itemCount: docs.length,
-                            itemBuilder: (context, index) {
+                            itemBuilder: (_, i) {
                               final d =
-                              docs[index].data() as Map<String, dynamic>;
+                                  docs[i].data() as Map<String, dynamic>;
+                              final docId = docs[i].id;
+
                               final title = d['title'];
-                              final amount = d['amount'];
+                              final amount = d['amount'] as int;
                               final type = d['type'];
+                              final category = d['category'];
                               final date =
-                              (d['created'] as Timestamp).toDate();
+                                  (d['created'] as Timestamp).toDate();
+
+                              final icon =
+                                  categoryIcon[category] ??
+                                  (type == 'income'
+                                      ? Icons.trending_up
+                                      : Icons.trending_down);
 
                               return _buildTransactionCard(
                                 title: title,
                                 subtitle: type,
                                 amount:
-                                type == 'expense' ? -amount : amount,
-                                icon: type == "income"
-                                    ? Icons.trending_up
-                                    : Icons.trending_down,
-                                color: type == "income"
+                                    type == 'expense' ? -amount : amount,
+                                icon: icon,
+                                color: type == 'income'
                                     ? Colors.green
                                     : Colors.redAccent,
-                                dateStr:
-                                DateFormat('dd MMM yyyy').format(date),
+                                dateStr: DateFormat('dd MMM yyyy')
+                                    .format(date),
+                                docId: docId,
                               );
                             },
                           );
@@ -283,59 +283,36 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
 
-      // ✅ "+" opens your FULL Add screen with grid + calculator
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: SizedBox(
-          width: 60,
-          height: 60,
-          child: FloatingActionButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CalculatorPage()),
-              );
-            },
-            backgroundColor: const Color(0xFFFDE047),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30)),
-            elevation: 4,
-            child: const Icon(Icons.add, size: 32, color: Colors.black),
-          ),
-        ),
+      // ✅ ADD BUTTON
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const CalculatorPage()));
+        },
+        backgroundColor: const Color(0xFFFDE047),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        child: const Icon(Icons.add, size: 32, color: Colors.black),
       ),
 
+      // ✅ FIXED BOTTOM NAV (NO AUTO RESET)
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() => _currentIndex = index);
+
           if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const WalletPage()),
-            ).then((_) => setState(() => _currentIndex = 0));
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const WalletPage()));
           } else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const StatisticsPage()),
-            ).then((_) => setState(() => _currentIndex = 0));
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const StatisticsPage()));
           } else if (index == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsPage()),
-            ).then((_) => setState(() => _currentIndex = 0));
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SettingsPage()));
           }
         },
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        selectedLabelStyle: GoogleFonts.poppins(
-            fontSize: 10, fontWeight: FontWeight.w600),
-        unselectedLabelStyle:
-        GoogleFonts.poppins(fontSize: 10),
         items: const [
           BottomNavigationBarItem(
               icon: Icon(Icons.home_filled), label: "Home"),
@@ -358,6 +335,7 @@ class _HomePageState extends State<HomePage> {
     required IconData icon,
     required Color color,
     required String dateStr,
+    required String docId,
   }) {
     return GestureDetector(
       onTap: () => showDialog(
@@ -370,20 +348,22 @@ class _HomePageState extends State<HomePage> {
           icon: icon,
           color: color,
           date: dateStr,
+          docId: docId,
         ),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 2),
         padding:
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: const BoxDecoration(color: Colors.white),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10)),
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: Icon(icon, color: color, size: 22),
             ),
             const SizedBox(width: 14),
@@ -402,15 +382,16 @@ class _HomePageState extends State<HomePage> {
             ),
             Text(
               NumberFormat.currency(
-                  locale: 'id_ID',
-                  symbol: 'Rp',
-                  decimalDigits: 0)
+                      locale: 'id_ID',
+                      symbol: 'Rp',
+                      decimalDigits: 0)
                   .format(amount.abs()),
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color:
-                amount < 0 ? const Color(0xFFFF5252) : Colors.green,
+                color: amount < 0
+                    ? const Color(0xFFFF5252)
+                    : Colors.green,
               ),
             ),
           ],
@@ -419,3 +400,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+

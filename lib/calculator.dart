@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'calculator_keyboard.dart';
 import 'category_grid.dart';
+import 'category_icon_map.dart';
 
 class CalculatorPage extends StatefulWidget {
   const CalculatorPage({super.key});
@@ -25,26 +26,27 @@ class _CalculatorPageState extends State<CalculatorPage> {
   int? finalAmount;
   bool loading = false;
 
+  // ✅ ICONS FROM category_icon_map.dart
   List<Map<String, dynamic>> get expenseCategories => [
-    {"name": "food", "icon": Icons.fastfood},
-    {"name": "transport", "icon": Icons.directions_car},
-    {"name": "clothes", "icon": Icons.shopping_bag},
-    {"name": "beauty", "icon": Icons.face_retouching_natural},
-    {"name": "education", "icon": Icons.school},
-    {"name": "medical", "icon": Icons.local_hospital},
-    {"name": "bills", "icon": Icons.receipt_long},
-    {"name": "entertain", "icon": Icons.movie},
-    {"name": "travel", "icon": Icons.flight_takeoff},
-    {"name": "social", "icon": Icons.group},
-    {"name": "games", "icon": Icons.sports_esports},
-    {"name": "other", "icon": Icons.more_horiz},
+    {"name": "food", "icon": categoryIcon["food"]},
+    {"name": "transport", "icon": categoryIcon["transport"]},
+    {"name": "clothes", "icon": categoryIcon["clothes"]},
+    {"name": "beauty", "icon": categoryIcon["beauty"]},
+    {"name": "education", "icon": categoryIcon["education"]},
+    {"name": "medical", "icon": categoryIcon["medical"]},
+    {"name": "bills", "icon": categoryIcon["bills"]},
+    {"name": "entertain", "icon": categoryIcon["entertain"]},
+    {"name": "travel", "icon": categoryIcon["travel"]},
+    {"name": "social", "icon": categoryIcon["social"]},
+    {"name": "games", "icon": categoryIcon["games"]},
+    {"name": "other", "icon": categoryIcon["other"]},
   ];
 
   List<Map<String, dynamic>> get incomeCategories => [
-    {"name": "wage", "icon": Icons.work},
-    {"name": "investment", "icon": Icons.trending_up},
-    {"name": "part time", "icon": Icons.access_time},
-    {"name": "bonus", "icon": Icons.card_giftcard},
+    {"name": "wage", "icon": categoryIcon["wage"]},
+    {"name": "investment", "icon": categoryIcon["investment"]},
+    {"name": "part time", "icon": categoryIcon["part time"]},
+    {"name": "bonus", "icon": categoryIcon["bonus"]},
   ];
 
   List<Map<String, dynamic>> get activeCategories =>

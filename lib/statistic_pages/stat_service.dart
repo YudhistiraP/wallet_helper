@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'stat_model.dart';
+import '../category_icon_map.dart';
 
 class StatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -23,11 +24,12 @@ class StatService {
     return snap.docs.map((d) => d.data()).toList();
   }
 
+  // ✅ CATEGORY BASED STATS
   List<StatData> _buildCategoryStats(List<Map<String, dynamic>> items) {
     final Map<String, double> sums = {};
 
     for (final data in items) {
-      final String title = (data['title'] ?? 'Lainnya').toString();
+      final String category = (data['category'] ?? 'other').toString();
       final dynamic rawAmount = data['amount'];
 
       final double amount = rawAmount is int
@@ -36,7 +38,7 @@ class StatService {
 
       if (amount <= 0) continue;
 
-      sums[title] = (sums[title] ?? 0) + amount;
+      sums[category] = (sums[category] ?? 0) + amount;
     }
 
     final colors = <Color>[
@@ -48,15 +50,6 @@ class StatService {
       const Color(0xFF009688),
     ];
 
-    final icons = <IconData>[
-      Icons.home_outlined,
-      Icons.fastfood_outlined,
-      Icons.shopping_bag_outlined,
-      Icons.directions_car_outlined,
-      Icons.movie_outlined,
-      Icons.more_horiz,
-    ];
-
     int i = 0;
     final list = sums.entries.map<StatData>((e) {
       final idx = i++;
@@ -64,7 +57,7 @@ class StatService {
         e.key,
         e.value,
         colors[idx % colors.length],
-        icons[idx % icons.length],
+        categoryIcon[e.key] ?? Icons.help,
       );
     }).toList();
 
