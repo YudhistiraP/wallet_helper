@@ -25,6 +25,9 @@ class _StatPieChartState extends State<StatPieChart> {
 
   @override
   Widget build(BuildContext context) {
+    final double safeTotal =
+    widget.totalAmount == 0 ? 1 : widget.totalAmount;
+
     return Column(
       children: [
         Text(
@@ -32,9 +35,11 @@ class _StatPieChartState extends State<StatPieChart> {
           style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
         ),
         Text(
-          NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
+          NumberFormat.currency(
+              locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
               .format(widget.totalAmount),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 20),
+          style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold, fontSize: 20),
         ),
         const SizedBox(height: 20),
         SizedBox(
@@ -42,7 +47,8 @@ class _StatPieChartState extends State<StatPieChart> {
           child: PieChart(
             PieChartData(
               pieTouchData: PieTouchData(
-                touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                touchCallback:
+                    (FlTouchEvent event, pieTouchResponse) {
                   setState(() {
                     if (!event.isInterestedForInteractions ||
                         pieTouchResponse == null ||
@@ -51,7 +57,8 @@ class _StatPieChartState extends State<StatPieChart> {
                       return;
                     }
                     touchedIndex =
-                        pieTouchResponse.touchedSection!.touchedSectionIndex;
+                        pieTouchResponse.touchedSection!
+                            .touchedSectionIndex;
                   });
                 },
               ),
@@ -63,7 +70,8 @@ class _StatPieChartState extends State<StatPieChart> {
                 final fontSize = isTouched ? 16.0 : 12.0;
                 final radius = isTouched ? 60.0 : 50.0;
                 final item = widget.data[i];
-                final percentage = (item.amount / widget.totalAmount) * 100;
+                final percentage =
+                    (item.amount / safeTotal) * 100;
 
                 return PieChartSectionData(
                   color: item.color,

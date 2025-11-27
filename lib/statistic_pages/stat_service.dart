@@ -5,33 +5,34 @@ import 'stat_model.dart';
 class StatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<List<StatData>> getStatsForMonth({
+  Future<List<Map<String, dynamic>>> _getTransactions({
     required String uid,
-    required DateTime month,
+    required DateTime start,
+    required DateTime end,
+    required bool isExpense,
   }) async {
-    final start = DateTime(month.year, month.month, 1);
-    final end = DateTime(month.year, month.month + 1, 1);
-
     final snap = await _db
         .collection('users')
         .doc(uid)
         .collection('transactions')
         .where('created', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
         .where('created', isLessThan: Timestamp.fromDate(end))
+        .where('type', isEqualTo: isExpense ? 'expense' : 'income')
         .get();
 
-    final Map<String, int> sums = {};
+    return snap.docs.map((d) => d.data()).toList();
+  }
 
-    for (final doc in snap.docs) {
-      final data = doc.data();
-      if (data['type'] != 'expense') continue;
+  List<StatData> _buildCategoryStats(List<Map<String, dynamic>> items) {
+    final Map<String, double> sums = {};
 
+    for (final data in items) {
       final String title = (data['title'] ?? 'Lainnya').toString();
       final dynamic rawAmount = data['amount'];
 
-      final int amount = rawAmount is int
-          ? rawAmount
-          : int.tryParse(rawAmount.toString()) ?? 0;
+      final double amount = rawAmount is int
+          ? rawAmount.toDouble()
+          : double.tryParse(rawAmount.toString()) ?? 0;
 
       if (amount <= 0) continue;
 
@@ -61,7 +62,7 @@ class StatService {
       final idx = i++;
       return StatData(
         e.key,
-        e.value.toDouble(), // ✅ FIXED
+        e.value,
         colors[idx % colors.length],
         icons[idx % icons.length],
       );
@@ -69,5 +70,109 @@ class StatService {
 
     list.sort((a, b) => b.amount.compareTo(a.amount));
     return list;
+  }
+
+  Future<List<StatData>> getStatsForMonth({
+    required String uid,
+    required DateTime month,
+    required bool isExpense,
+  }) async {
+    final start = DateTime(month.year, month.month, 1);
+    final end = DateTime(month.year, month.month + 1, 1);
+    final items = await _getTransactions(
+      uid: uid,
+      start: start,
+      end: end,
+      isExpense: isExpense,
+    );
+    return _buildCategoryStats(items);
+  }
+
+  Future<List<StatData>> getStatsForYear({
+    required String uid,
+    required int year,
+    required bool isExpense,
+  }) async {
+    final start = DateTime(year, 1, 1);
+    final end = DateTime(year + 1, 1, 1);
+    final items = await _getTransactions(
+      uid: uid,
+      start: start,
+      end: end,
+      isExpense: isExpense,
+    );
+    return _buildCategoryStats(items);
+  }
+
+  Future<List<double>> getWeeklyTotals({
+    required String uid,
+    required DateTime month,
+    required bool isExpense,
+  }) async {
+    final start = DateTime(month.year, month.month, 1);
+    final end = DateTime(month.year, month.month + 1, 1);
+    final items = await _getTransactions(
+      uid: uid,
+      start: start,
+      end: end,
+      isExpense: isExpense,
+    );
+
+    final totals = List<double>.filled(4, 0);
+
+    for (final data in items) {
+      final created = data['created'];
+      if (created is! Timestamp) continue;
+      final date = created.toDate();
+
+      int index = ((date.day - 1) / 7).floor();
+      if (index < 0) index = 0;
+      if (index > 3) index = 3;
+
+      final dynamic rawAmount = data['amount'];
+      final double amount = rawAmount is int
+          ? rawAmount.toDouble()
+          : double.tryParse(rawAmount.toString()) ?? 0;
+
+      if (amount <= 0) continue;
+      totals[index] += amount;
+    }
+
+    return totals;
+  }
+
+  Future<List<double>> getMonthlyTotals({
+    required String uid,
+    required int year,
+    required bool isExpense,
+  }) async {
+    final start = DateTime(year, 1, 1);
+    final end = DateTime(year + 1, 1, 1);
+    final items = await _getTransactions(
+      uid: uid,
+      start: start,
+      end: end,
+      isExpense: isExpense,
+    );
+
+    final totals = List<double>.filled(12, 0);
+
+    for (final data in items) {
+      final created = data['created'];
+      if (created is! Timestamp) continue;
+      final date = created.toDate();
+      final int index = date.month - 1;
+      if (index < 0 || index >= 12) continue;
+
+      final dynamic rawAmount = data['amount'];
+      final double amount = rawAmount is int
+          ? rawAmount.toDouble()
+          : double.tryParse(rawAmount.toString()) ?? 0;
+
+      if (amount <= 0) continue;
+      totals[index] += amount;
+    }
+
+    return totals;
   }
 }

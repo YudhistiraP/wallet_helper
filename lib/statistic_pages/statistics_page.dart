@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-// IMPORT FILE-FILE PENDUKUNG
 import 'stat_model.dart';
 import 'stat_pie_chart.dart';
 import 'stat_bar_chart.dart';
 import 'stat_category_list.dart';
-import '../settings_page.dart'; // Import Settings Page
+import 'stat_service.dart';
+import '../settings_page.dart';
 import '../wallet_pages/wallet_page.dart';
 
 class StatisticsPage extends StatefulWidget {
@@ -18,69 +19,127 @@ class StatisticsPage extends StatefulWidget {
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
-  // State
   bool isExpense = true;
   DateTime currentDate = DateTime.now();
-  String viewMode = "Monthly"; // "Monthly" or "Yearly"
+  String viewMode = "Monthly";
 
-  // State untuk Bottom Nav (Default 2 karena ini halaman Statistik)
   int _bottomNavIndex = 2;
 
-  // Dummy Data
-  final List<StatData> expenseData = [
-    StatData("Food", 1500000, Colors.redAccent, Icons.fastfood),
-    StatData("Transport", 500000, Colors.blueAccent, Icons.directions_car),
-    StatData("Shopping", 750000, Colors.purple, Icons.shopping_bag),
-    StatData("Utilities", 300000, Colors.orange, Icons.electric_bolt),
-  ];
+  final StatService _statService = StatService();
 
-  final List<StatData> incomeData = [
-    StatData("Salary", 5000000, Colors.green, Icons.account_balance_wallet),
-    StatData("Freelance", 1500000, Colors.teal, Icons.laptop_mac),
-    StatData("Bonus", 500000, Colors.amber, Icons.card_giftcard),
-  ];
+  bool _loading = true;
+  List<StatData> _activeData = [];
+  List<double> _barData = [];
+  List<String> _barLabels = [];
+  double _totalAmount = 0;
 
   void _changeDate(int offset) {
     setState(() {
       if (viewMode == "Monthly") {
-        currentDate = DateTime(currentDate.year, currentDate.month + offset);
+        currentDate =
+            DateTime(currentDate.year, currentDate.month + offset);
       } else {
-        currentDate = DateTime(currentDate.year + offset, currentDate.month);
+        currentDate =
+            DateTime(currentDate.year + offset, currentDate.month);
       }
     });
+    _loadStats();
   }
 
-  // Logika Navigasi Bottom Bar
   void _onBottomNavTap(int index) {
-    // Jangan update state index jika akan pindah halaman (kecuali mau highlight sementara)
-    // setState(() => _bottomNavIndex = index); 
-
     if (index == 0) {
-      // 0 = Home: Kembali ke halaman utama
       Navigator.popUntil(context, (route) => route.isFirst);
-    }
-    else if (index == 1) {
-      // 1 = Wallet
+    } else if (index == 1) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const WalletPage()),
       ).then((_) {
-        // Kembalikan highlight ke Statistics saat kembali
         setState(() => _bottomNavIndex = 2);
       });
-    }
-    else if (index == 2) {
-      // 2 = Statistics: Sudah di sini
+    } else if (index == 2) {
       setState(() => _bottomNavIndex = index);
-    }
-    else if (index == 3) {
-      // 3 = Settings
+    } else if (index == 3) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const SettingsPage()),
       ).then((_) {
-        // Kembalikan highlight ke Statistics saat kembali
         setState(() => _bottomNavIndex = 2);
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+    });
+
+    final uid = user.uid;
+
+    if (viewMode == "Monthly") {
+      final categories = await _statService.getStatsForMonth(
+        uid: uid,
+        month: currentDate,
+        isExpense: isExpense,
+      );
+      final weekly = await _statService.getWeeklyTotals(
+        uid: uid,
+        month: currentDate,
+        isExpense: isExpense,
+      );
+      final total =
+      categories.fold<double>(0, (sum, item) => sum + item.amount);
+
+      setState(() {
+        _activeData = categories;
+        _totalAmount = total;
+        _barData = weekly;
+        _barLabels = ["W1", "W2", "W3", "W4"];
+        _loading = false;
+      });
+    } else {
+      final categories = await _statService.getStatsForYear(
+        uid: uid,
+        year: currentDate.year,
+        isExpense: isExpense,
+      );
+      final monthly = await _statService.getMonthlyTotals(
+        uid: uid,
+        year: currentDate.year,
+        isExpense: isExpense,
+      );
+      final total =
+      categories.fold<double>(0, (sum, item) => sum + item.amount);
+
+      setState(() {
+        _activeData = categories;
+        _totalAmount = total;
+        _barData = monthly;
+        _barLabels = [
+          "J",
+          "F",
+          "M",
+          "A",
+          "M",
+          "J",
+          "J",
+          "A",
+          "S",
+          "O",
+          "N",
+          "D"
+        ];
+        _loading = false;
       });
     }
   }
@@ -90,8 +149,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
     Color yellowColor = const Color(0xFFFFF78A);
     Color peachColor = const Color(0xFFF6A987);
 
-    List<StatData> activeData = isExpense ? expenseData : incomeData;
-    double totalAmount = activeData.fold(0, (sum, item) => sum + item.amount);
+    List<StatData> activeData = _activeData;
+    double totalAmount = _totalAmount;
 
     String dateText = viewMode == "Monthly"
         ? DateFormat('MMMM yyyy', 'id_ID').format(currentDate)
@@ -103,56 +162,73 @@ class _StatisticsPageState extends State<StatisticsPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black54),
+          icon:
+          const Icon(Icons.arrow_back_ios, color: Colors.black54),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "Statistics",
-          style: GoogleFonts.poppins(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(
+              color: Colors.black87, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
-
       body: Column(
         children: [
-          // HEADER NAVIGATOR
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
                   onPressed: () => _changeDate(-1),
-                  icon: const Icon(Icons.chevron_left, size: 28, color: Colors.black54),
+                  icon: const Icon(Icons.chevron_left,
+                      size: 28, color: Colors.black54),
                 ),
                 Text(
                   dateText,
-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
                 ),
                 IconButton(
                   onPressed: () => _changeDate(1),
-                  icon: const Icon(Icons.chevron_right, size: 28, color: Colors.black54),
+                  icon: const Icon(Icons.chevron_right,
+                      size: 28, color: Colors.black54),
                 ),
                 const SizedBox(width: 8),
                 Container(
                   height: 35,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border:
+                    Border.all(color: Colors.grey.shade300),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: viewMode,
-                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
-                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+                      icon: const Icon(Icons.arrow_drop_down,
+                          color: Colors.black54),
+                      style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87),
                       items: const [
-                        DropdownMenuItem(value: "Monthly", child: Text("M")),
-                        DropdownMenuItem(value: "Yearly", child: Text("Y")),
+                        DropdownMenuItem(
+                            value: "Monthly", child: Text("M")),
+                        DropdownMenuItem(
+                            value: "Yearly", child: Text("Y")),
                       ],
                       onChanged: (String? newValue) {
-                        if (newValue != null) setState(() => viewMode = newValue);
+                        if (newValue != null) {
+                          setState(() => viewMode = newValue);
+                          _loadStats();
+                        }
                       },
                     ),
                   ),
@@ -160,8 +236,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
               ],
             ),
           ),
-
-          // TOGGLE SWITCH
           Padding(
             padding: const EdgeInsets.only(bottom: 15),
             child: Container(
@@ -180,8 +254,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
               ),
             ),
           ),
-
-          // KONTEN UTAMA (SCROLLABLE)
           Expanded(
             child: Container(
               width: double.infinity,
@@ -193,11 +265,21 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 ),
               ),
               child: SingleChildScrollView(
-                child: Column(
+                child: _loading
+                    ? SizedBox(
+                  height: 260,
+                  child: Center(
+                    child:
+                    CircularProgressIndicator(),
+                  ),
+                )
+                    : Column(
                   children: [
                     const SizedBox(height: 20),
                     Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      margin:
+                      const EdgeInsets.symmetric(
+                          horizontal: 20),
                       padding: const EdgeInsets.all(20),
                       decoration: const BoxDecoration(
                         color: Colors.white,
@@ -210,32 +292,27 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       ),
                       child: Column(
                         children: [
-                          // 1. PIE CHART
                           StatPieChart(
-                              data: activeData,
-                              totalAmount: totalAmount,
-                              isExpense: isExpense
+                            data: activeData,
+                            totalAmount: totalAmount,
+                            isExpense: isExpense,
                           ),
-
                           const SizedBox(height: 30),
                           const Divider(),
                           const SizedBox(height: 20),
-
-                          // 2. BAR CHART
                           StatBarChart(
-                              isExpense: isExpense,
-                              viewMode: viewMode
+                            isExpense: isExpense,
+                            viewMode: viewMode,
+                            barData: _barData,
+                            labels: _barLabels,
                           ),
-
                           const SizedBox(height: 30),
                           const Divider(),
                           const SizedBox(height: 20),
-
-                          // 3. CATEGORY LIST
                           StatCategoryList(
-                              data: activeData,
-                              totalAmount: totalAmount,
-                              isExpense: isExpense
+                            data: activeData,
+                            totalAmount: totalAmount,
+                            isExpense: isExpense,
                           ),
                         ],
                       ),
@@ -248,8 +325,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
           ),
         ],
       ),
-
-      // --- BOTTOM NAVIGATION BAR ---
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _bottomNavIndex,
         onTap: _onBottomNavTap,
@@ -258,13 +333,22 @@ class _StatisticsPageState extends State<StatisticsPage> {
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
-        selectedLabelStyle: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: GoogleFonts.poppins(fontSize: 10),
+        selectedLabelStyle: GoogleFonts.poppins(
+            fontSize: 10, fontWeight: FontWeight.w600),
+        unselectedLabelStyle:
+        GoogleFonts.poppins(fontSize: 10),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), label: "Wallet"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Statistics"),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: "Settings"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled), label: "Home"),
+          BottomNavigationBarItem(
+              icon: Icon(
+                  Icons.account_balance_wallet_outlined),
+              label: "Wallet"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart), label: "Statistics"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              label: "Settings"),
         ],
       ),
     );
@@ -273,25 +357,37 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Widget _buildToggleButton(String text, bool targetIsExpense) {
     bool isActive = (isExpense == targetIsExpense);
     return GestureDetector(
-      onTap: () => setState(() => isExpense = targetIsExpense),
+      onTap: () {
+        if (isExpense == targetIsExpense) return;
+        setState(() => isExpense = targetIsExpense);
+        _loadStats();
+      },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF2E7D32) : Colors.transparent,
+          color: isActive
+              ? const Color(0xFF2E7D32)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           children: [
             if (isActive)
-              Icon(targetIsExpense ? Icons.money_off : Icons.attach_money,
-                  size: 16, color: const Color(0xFFFFEB3B)),
+              Icon(
+                  targetIsExpense
+                      ? Icons.money_off
+                      : Icons.attach_money,
+                  size: 16,
+                  color: const Color(0xFFFFEB3B)),
             if (isActive) const SizedBox(width: 6),
             Text(
               text,
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
-                color: isActive ? Colors.white : Colors.black87,
+                color:
+                isActive ? Colors.white : Colors.black87,
               ),
             ),
           ],
