@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'add_note.dart';
@@ -33,18 +35,6 @@ class _HomePageState extends State<HomePage> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
       initialDatePickerMode: DatePickerMode.year,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF585CE5),
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null && picked != currentDate) {
@@ -56,12 +46,27 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
     Color yellowColor = const Color(0xFFFFF78A);
     Color peachColor = const Color(0xFFF6A987);
     String formattedDate = DateFormat('MMM/yyyy').format(currentDate);
 
     return Scaffold(
       backgroundColor: yellowColor,
+
+      appBar: AppBar(
+        title: const Text("WalletHelper"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) Navigator.pop(context);
+            },
+          )
+        ],
+      ),
 
       body: SafeArea(
         bottom: false,
@@ -75,33 +80,36 @@ class _HomePageState extends State<HomePage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Halo, Ripia!",
-                        style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
-                      ),
-                      Text(
-                        "Selamat datang kembali",
-                        style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54),
-                      ),
+                      Text("Halo!",
+                          style: GoogleFonts.poppins(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87)),
+                      Text("Selamat datang kembali",
+                          style: GoogleFonts.poppins(
+                              fontSize: 14, color: Colors.black54)),
                     ],
                   ),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SettingsPage()),
-                      );
-                    },
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const SettingsPage()),
+                    ),
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                          BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4)),
                         ],
                       ),
                       padding: const EdgeInsets.all(8),
-                      child: const Icon(Icons.person, color: Colors.black54),
+                      child:
+                      const Icon(Icons.person, color: Colors.black54),
                     ),
                   ),
                 ],
@@ -113,9 +121,9 @@ class _HomePageState extends State<HomePage> {
               onPrevMonth: () => _changeMonth(-1),
               onNextMonth: () => _changeMonth(1),
               onSelectMonth: _selectMonth,
-              totalBalance: 1500000,
-              totalIncome: 2500000,
-              totalExpense: 1000000,
+              totalBalance: null,
+              totalIncome: null,
+              totalExpense: null,
             ),
 
             Expanded(
@@ -123,27 +131,34 @@ class _HomePageState extends State<HomePage> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: peachColor,
-                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+                  borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30)),
                 ),
                 child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
+                      padding:
+                      const EdgeInsets.fromLTRB(24, 20, 24, 10),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const CalendarPage()),
-                              );
-                            },
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                  const CalendarPage()),
+                            ),
                             child: Row(
                               children: [
-                                Text("Selengkapnya", style: GoogleFonts.poppins(color: Colors.black54, fontSize: 12)),
+                                Text("Selengkapnya",
+                                    style: GoogleFonts.poppins(
+                                        color: Colors.black54,
+                                        fontSize: 12)),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.arrow_forward_ios, size: 10, color: Colors.black54),
+                                const Icon(Icons.arrow_forward_ios,
+                                    size: 10, color: Colors.black54),
                               ],
                             ),
                           ),
@@ -152,23 +167,61 @@ class _HomePageState extends State<HomePage> {
                     ),
 
                     Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        children: [
-                          _buildDateHeader("Thu, 31 Oct", "Rp32.000"),
-                          _buildTransactionCard(
-                            title: "Transportation", subtitle: "Gasoline", amount: -20000, icon: Icons.local_taxi, color: Colors.orange, dateStr: "31 Oct 2024",
-                          ),
-                          _buildTransactionCard(
-                            title: "Food", subtitle: "Ayam Kremes Bu Las", amount: -12000, icon: Icons.fastfood, color: Colors.redAccent, dateStr: "31 Oct 2024",
-                          ),
-                          const SizedBox(height: 12),
-                          _buildDateHeader("Wed, 30 Oct", "Rp362.000"),
-                          _buildTransactionCard(
-                            title: "Clothes", subtitle: "Hoodie H&M", amount: -350000, icon: Icons.checkroom, color: Colors.blueAccent, dateStr: "30 Oct 2024",
-                          ),
-                          const SizedBox(height: 80),
-                        ],
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(uid)
+                            .collection('transactions')
+                            .orderBy('created', descending: true)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
+                            return const Center(
+                              child: Text("Belum ada transaksi."),
+                            );
+                          }
+
+                          final docs = snapshot.data!.docs;
+
+                          return ListView.builder(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20),
+                            itemCount: docs.length,
+                            itemBuilder: (context, index) {
+                              final d = docs[index].data()
+                              as Map<String, dynamic>;
+                              final title = d['title'];
+                              final amount = d['amount'];
+                              final type = d['type'];
+                              final date =
+                              (d['created'] as Timestamp)
+                                  .toDate();
+
+                              return _buildTransactionCard(
+                                title: title,
+                                subtitle: type,
+                                amount: type == 'expense'
+                                    ? -amount
+                                    : amount,
+                                icon: type == "income"
+                                    ? Icons.trending_up
+                                    : Icons.trending_down,
+                                color: type == "income"
+                                    ? Colors.green
+                                    : Colors.redAccent,
+                                dateStr:
+                                DateFormat('dd MMM yyyy').format(date),
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -179,8 +232,8 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
 
-      // PERBAIKAN: Memindahkan FAB ke tengah agar tidak menutupi tombol Settings di kanan
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButtonLocation:
+      FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: SizedBox(
@@ -188,10 +241,12 @@ class _HomePageState extends State<HomePage> {
           height: 60,
           child: FloatingActionButton(
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const AddNotePage()));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const AddNotePage()));
             },
             backgroundColor: const Color(0xFFFDE047),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30)),
             elevation: 4,
             child: const Icon(Icons.add, size: 32, color: Colors.black),
           ),
@@ -201,42 +256,19 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          // 1. Update tampilan tombol yang aktif
           setState(() => _currentIndex = index);
-
-          // 2. Logika Navigasi
-          if (index == 0) {
-            // Home (Stay here)
-          }
-          else if (index == 1) {
-            // Wallet
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const WalletPage()),
-            ).then((_) {
-              // Reset ke home saat kembali
-              setState(() => _currentIndex = 0);
-            });
-          }
-          else if (index == 2) {
-            // Statistics
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const StatisticsPage()),
-            ).then((_) {
-              // Reset ke home saat kembali
-              setState(() => _currentIndex = 0);
-            });
-          }
-          else if (index == 3) {
-            // Settings
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsPage()),
-            ).then((_) {
-              // Reset ke home saat kembali
-              setState(() => _currentIndex = 0);
-            });
+          if (index == 1) {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const WalletPage()))
+                .then((_) => setState(() => _currentIndex = 0));
+          } else if (index == 2) {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const StatisticsPage()))
+                .then((_) => setState(() => _currentIndex = 0));
+          } else if (index == 3) {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SettingsPage()))
+                .then((_) => setState(() => _currentIndex = 0));
           }
         },
         type: BottomNavigationBarType.fixed,
@@ -244,64 +276,56 @@ class _HomePageState extends State<HomePage> {
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
-        selectedLabelStyle: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600),
+        selectedLabelStyle: GoogleFonts.poppins(
+            fontSize: 10, fontWeight: FontWeight.w600),
         unselectedLabelStyle: GoogleFonts.poppins(fontSize: 10),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), label: "Wallet"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled), label: "Home"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              label: "Wallet"),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Statistics"),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: "Settings"),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDateHeader(String date, String totalExpense) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Color(0xFFEEEEEE),
-        borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
-              Text(date, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey[700])),
-            ],
-          ),
-          Text("Expenses: $totalExpense", style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey[700])),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined), label: "Settings"),
         ],
       ),
     );
   }
 
   Widget _buildTransactionCard({
-    required String title, required String subtitle, required int amount, required IconData icon, required Color color, required String dateStr,
+    required String title,
+    required String subtitle,
+    required int amount,
+    required IconData icon,
+    required Color color,
+    required String dateStr,
   }) {
     return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          barrierColor: Colors.transparent,
-          builder: (context) {
-            return TransactionDetailDialog(
-              title: title, subtitle: subtitle, amount: amount, icon: icon, color: color, date: dateStr,
-            );
-          },
-        );
-      },
+      onTap: () => showDialog(
+        context: context,
+        barrierColor: Colors.transparent,
+        builder: (_) => TransactionDetailDialog(
+          title: title,
+          subtitle: subtitle,
+          amount: amount,
+          icon: icon,
+          color: color,
+          date: dateStr,
+        ),
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: const BoxDecoration(color: Colors.white),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10)),
               child: Icon(icon, color: color, size: 22),
             ),
             const SizedBox(width: 14),
@@ -309,14 +333,24 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14)),
-                  Text(subtitle, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey)),
+                  Text(title,
+                      style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  Text(subtitle,
+                      style: GoogleFonts.poppins(
+                          fontSize: 11, color: Colors.grey)),
                 ],
               ),
             ),
             Text(
-              NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(amount),
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14, color: amount < 0 ? const Color(0xFFFF5252) : Colors.green),
+              NumberFormat.currency(
+                  locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
+                  .format(amount.abs()),
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: amount < 0 ? const Color(0xFFFF5252) : Colors.green,
+              ),
             ),
           ],
         ),
@@ -324,3 +358,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
