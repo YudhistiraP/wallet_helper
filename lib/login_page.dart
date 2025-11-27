@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'home_page.dart';
 import 'register_page.dart';
 
@@ -18,6 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   bool isLoading = false;
   bool isObscure = true;
 
+  // --- FUNGSI LOGIN EMAIL BIASA ---
   Future<void> login() async {
     FocusScope.of(context).unfocus();
 
@@ -93,6 +95,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 20),
 
+                // INPUT EMAIL
                 Text("Email", style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
                 TextField(
@@ -111,6 +114,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 16),
 
+                // INPUT PASSWORD
                 Text("Password", style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
                 TextField(
@@ -155,6 +159,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 10),
 
+                // BUTTONS LOGIN & REGISTER
                 isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : Column(
@@ -203,6 +208,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 30),
 
+                // DIVIDER OR
                 Row(
                   children: [
                     Expanded(child: Divider(color: Colors.grey.shade400)),
@@ -216,6 +222,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 20),
 
+                // SOCIAL BUTTONS
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -236,6 +243,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // Widget Helper Tombol Sosmed
   Widget _socialButton({required String imagePath, VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
