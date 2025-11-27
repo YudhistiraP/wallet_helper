@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'calculator.dart';
 
 class AddNotePage extends StatefulWidget {
   const AddNotePage({super.key});
@@ -56,9 +57,6 @@ class _AddNotePageState extends State<AddNotePage> {
           .collection('meta')
           .doc('wallet');
 
-      // ============================
-      // 1) SIMPAN TRANSAKSI
-      // ============================
       await transactionRef.set({
         "title": title,
         "amount": amount,
@@ -66,9 +64,6 @@ class _AddNotePageState extends State<AddNotePage> {
         "created": Timestamp.now(),
       });
 
-      // ============================
-      // 2) UPDATE WALLET (BALANCE)
-      // ============================
       await firestore.runTransaction((tx) async {
         final snap = await tx.get(walletRef);
 
@@ -100,7 +95,6 @@ class _AddNotePageState extends State<AddNotePage> {
       });
 
       if (mounted) Navigator.pop(context);
-
     } catch (e) {
       show(e.toString());
     } finally {
@@ -109,9 +103,7 @@ class _AddNotePageState extends State<AddNotePage> {
   }
 
   void show(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -126,12 +118,31 @@ class _AddNotePageState extends State<AddNotePage> {
               controller: titleController,
               decoration: const InputDecoration(labelText: "Judul"),
             ),
+
             const SizedBox(height: 12),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Jumlah"),
+
+            // OPEN CALCULATOR POPUP
+            GestureDetector(
+              onTap: () async {
+                final result = await showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (_) => const CalculatorPage(),
+                );
+
+                if (result != null) {
+                  amountController.text = result.toString();
+                }
+              },
+              child: AbsorbPointer(
+                child: TextField(
+                  controller: amountController,
+                  decoration: const InputDecoration(labelText: "Jumlah"),
+                ),
+              ),
             ),
+
             const SizedBox(height: 18),
 
             Row(
@@ -161,11 +172,9 @@ class _AddNotePageState extends State<AddNotePage> {
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
               onPressed: saveTransaction,
-              child: Text(
-                "SIMPAN",
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-              ),
-            )
+              child: Text("SIMPAN",
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
       ),

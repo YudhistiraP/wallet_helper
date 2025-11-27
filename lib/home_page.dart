@@ -4,13 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-import 'add_note.dart';
 import 'transaction_detail_dialog.dart';
 import 'balance_card.dart';
 import 'calendar_page.dart';
 import 'statistic_pages/statistics_page.dart';
 import 'settings_page.dart';
 import 'wallet_pages/wallet_page.dart';
+import 'calculator.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -45,10 +45,40 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<Map<String, int>> _getMonthlySummary(String uid) async {
+    final start = DateTime(currentDate.year, currentDate.month, 1);
+    final end = DateTime(currentDate.year, currentDate.month + 1, 1);
+
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('transactions')
+        .where('created', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('created', isLessThan: Timestamp.fromDate(end))
+        .get();
+
+    int income = 0;
+    int expense = 0;
+
+    for (var d in snap.docs) {
+      final data = d.data();
+      if (data['type'] == 'income') {
+        income += (data['amount'] as int);
+      } else {
+        expense += (data['amount'] as int);
+      }
+    }
+
+    return {
+      "income": income,
+      "expense": expense,
+      "balance": income - expense,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-
 
     if (user == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -60,7 +90,6 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-
     final uid = user.uid;
 
     Color yellowColor = const Color(0xFFFFF78A);
@@ -69,7 +98,6 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: yellowColor,
-
       appBar: AppBar(
         title: const Text("WalletHelper"),
         actions: [
@@ -82,7 +110,6 @@ class _HomePageState extends State<HomePage> {
           )
         ],
       ),
-
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -112,7 +139,8 @@ class _HomePageState extends State<HomePage> {
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const SettingsPage()),
+                      MaterialPageRoute(
+                          builder: (context) => const SettingsPage()),
                     ),
                     child: Container(
                       decoration: BoxDecoration(
@@ -133,14 +161,26 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            BalanceCard(
-              formattedDate: formattedDate,
-              onPrevMonth: () => _changeMonth(-1),
-              onNextMonth: () => _changeMonth(1),
-              onSelectMonth: _selectMonth,
-              totalBalance: 0,
-              totalIncome: 0,
-              totalExpense: 0,
+            // ✅ SUMMARY CARD CONNECTED TO FIRESTORE
+            FutureBuilder<Map<String, int>>(
+              future: _getMonthlySummary(uid),
+              builder: (context, snapshot) {
+                final data = snapshot.data ?? {
+                  "income": 0,
+                  "expense": 0,
+                  "balance": 0,
+                };
+
+                return BalanceCard(
+                  formattedDate: formattedDate,
+                  onPrevMonth: () => _changeMonth(-1),
+                  onNextMonth: () => _changeMonth(1),
+                  onSelectMonth: _selectMonth,
+                  totalBalance: data["balance"]!,
+                  totalIncome: data["income"]!,
+                  totalExpense: data["expense"]!,
+                );
+              },
             ),
 
             Expanded(
@@ -179,7 +219,6 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ),
-
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
@@ -191,7 +230,8 @@ class _HomePageState extends State<HomePage> {
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator());
+                            return const Center(
+                                child: CircularProgressIndicator());
                           }
 
                           if (!snapshot.hasData ||
@@ -208,8 +248,8 @@ class _HomePageState extends State<HomePage> {
                             const EdgeInsets.symmetric(horizontal: 20),
                             itemCount: docs.length,
                             itemBuilder: (context, index) {
-                              final d = docs[index].data()
-                              as Map<String, dynamic>;
+                              final d =
+                              docs[index].data() as Map<String, dynamic>;
                               final title = d['title'];
                               final amount = d['amount'];
                               final type = d['type'];
@@ -243,8 +283,8 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
 
-      floatingActionButtonLocation:
-      FloatingActionButtonLocation.endFloat,
+      // ✅ "+" opens your FULL Add screen with grid + calculator
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: SizedBox(
@@ -252,8 +292,10 @@ class _HomePageState extends State<HomePage> {
           height: 60,
           child: FloatingActionButton(
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const AddNotePage()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CalculatorPage()),
+              );
             },
             backgroundColor: const Color(0xFFFDE047),
             shape: RoundedRectangleBorder(
@@ -292,7 +334,8 @@ class _HomePageState extends State<HomePage> {
         showUnselectedLabels: true,
         selectedLabelStyle: GoogleFonts.poppins(
             fontSize: 10, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: GoogleFonts.poppins(fontSize: 10),
+        unselectedLabelStyle:
+        GoogleFonts.poppins(fontSize: 10),
         items: const [
           BottomNavigationBarItem(
               icon: Icon(Icons.home_filled), label: "Home"),
@@ -331,7 +374,8 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: const BoxDecoration(color: Colors.white),
         child: Row(
           children: [
@@ -358,14 +402,15 @@ class _HomePageState extends State<HomePage> {
             ),
             Text(
               NumberFormat.currency(
-                  locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
+                  locale: 'id_ID',
+                  symbol: 'Rp',
+                  decimalDigits: 0)
                   .format(amount.abs()),
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: amount < 0
-                    ? const Color(0xFFFF5252)
-                    : Colors.green,
+                color:
+                amount < 0 ? const Color(0xFFFF5252) : Colors.green,
               ),
             ),
           ],

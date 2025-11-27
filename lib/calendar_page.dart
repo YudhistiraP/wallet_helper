@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CalendarTransaction {
   final String title;
@@ -31,26 +33,57 @@ class _CalendarPageState extends State<CalendarPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  late Map<DateTime, List<CalendarTransaction>> _events;
+  Map<DateTime, List<CalendarTransaction>> _events = {};
 
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
+    _loadMonthData();
+  }
 
-    _events = {
-      DateTime.utc(_focusedDay.year, _focusedDay.month, _focusedDay.day): [
-        CalendarTransaction(title: "Makan Siang", amount: 25000, isExpense: true, icon: Icons.fastfood, color: Colors.red),
-        CalendarTransaction(title: "Ojek Online", amount: 15000, isExpense: true, icon: Icons.motorcycle, color: Colors.orange),
-      ],
-      DateTime.utc(_focusedDay.year, _focusedDay.month, _focusedDay.day + 1): [
-        CalendarTransaction(title: "Freelance", amount: 500000, isExpense: false, icon: Icons.laptop, color: Colors.green),
-      ],
-      DateTime.utc(_focusedDay.year, _focusedDay.month, _focusedDay.day - 3): [
-        CalendarTransaction(title: "Belanja Bulanan", amount: 350000, isExpense: true, icon: Icons.shopping_bag, color: Colors.blue),
-        CalendarTransaction(title: "Listrik", amount: 100000, isExpense: true, icon: Icons.electric_bolt, color: Colors.yellow),
-      ],
-    };
+  Future<void> _loadMonthData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final uid = user.uid;
+
+    final start = DateTime(_focusedDay.year, _focusedDay.month, 1);
+    final end = DateTime(_focusedDay.year, _focusedDay.month + 1, 1);
+
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('transactions')
+        .where('created', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('created', isLessThan: Timestamp.fromDate(end))
+        .get();
+
+    Map<DateTime, List<CalendarTransaction>> temp = {};
+
+    for (final doc in snap.docs) {
+      final d = doc.data();
+      final dt = (d['created'] as Timestamp).toDate();
+      final dayKey = DateTime.utc(dt.year, dt.month, dt.day);
+
+      final isExpense = d['type'] == 'expense';
+      final color = isExpense ? Colors.red : Colors.green;
+      final icon = isExpense ? Icons.trending_down : Icons.trending_up;
+
+      temp.putIfAbsent(dayKey, () => []);
+      temp[dayKey]!.add(
+        CalendarTransaction(
+          title: d['title'],
+          amount: d['amount'],
+          isExpense: isExpense,
+          icon: icon,
+          color: color,
+        ),
+      );
+    }
+
+    setState(() {
+      _events = temp;
+    });
   }
 
   List<CalendarTransaction> _getEventsForDay(DateTime day) {
@@ -58,30 +91,19 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _selectYearMonth() async {
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: _focusedDay,
       firstDate: DateTime(2000),
       lastDate: DateTime(2050),
       initialDatePickerMode: DatePickerMode.year,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF00BFA5),
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
       setState(() {
         _focusedDay = picked;
       });
+      _loadMonthData();
     }
   }
 
@@ -92,7 +114,6 @@ class _CalendarPageState extends State<CalendarPage> {
 
     return Scaffold(
       backgroundColor: yellowColor,
-
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -106,11 +127,9 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
         centerTitle: true,
       ),
-
       body: Column(
         children: [
           const SizedBox(height: 10),
-
           Expanded(
             child: Container(
               width: double.infinity,
@@ -123,7 +142,6 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
               child: Column(
                 children: [
-
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: Container(
@@ -139,16 +157,17 @@ class _CalendarPageState extends State<CalendarPage> {
                         calendarFormat: _calendarFormat,
 
                         selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+
                         onDaySelected: (selectedDay, focusedDay) {
-                          if (!isSameDay(_selectedDay, selectedDay)) {
-                            setState(() {
-                              _selectedDay = selectedDay;
-                              _focusedDay = focusedDay;
-                            });
-                          }
+                          setState(() {
+                            _selectedDay = selectedDay;
+                            _focusedDay = focusedDay;
+                          });
                         },
+
                         onPageChanged: (focusedDay) {
                           _focusedDay = focusedDay;
+                          _loadMonthData();
                         },
 
                         eventLoader: _getEventsForDay,
@@ -156,53 +175,6 @@ class _CalendarPageState extends State<CalendarPage> {
                         headerStyle: const HeaderStyle(
                           titleCentered: true,
                           formatButtonVisible: false,
-                          leftChevronIcon: Icon(Icons.chevron_left, color: Colors.grey),
-                          rightChevronIcon: Icon(Icons.chevron_right, color: Colors.grey),
-                        ),
-
-                        calendarBuilders: CalendarBuilders(
-                          headerTitleBuilder: (context, day) {
-                            return GestureDetector(
-                              onTap: _selectYearMonth,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      DateFormat('MMMM yyyy').format(day),
-                                      style: GoogleFonts.poppins(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.arrow_drop_down, color: Colors.black54),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-
-                          markerBuilder: (context, date, events) {
-                            if (events.isEmpty) return null;
-                            return Positioned(
-                              bottom: 1,
-                              child: Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Colors.orange,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            );
-                          },
                         ),
 
                         calendarStyle: CalendarStyle(
@@ -211,27 +183,18 @@ class _CalendarPageState extends State<CalendarPage> {
                             shape: BoxShape.circle,
                           ),
                           selectedTextStyle: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
-                          todayDecoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.3),
-                            shape: BoxShape.circle,
-                          ),
-                          defaultTextStyle: GoogleFonts.poppins(),
                           weekendTextStyle: GoogleFonts.poppins(color: Colors.redAccent),
                         ),
                       ),
                     ),
                   ),
-
                   Expanded(
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       decoration: const BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
-                        ),
+                        borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,13 +202,10 @@ class _CalendarPageState extends State<CalendarPage> {
                           const SizedBox(height: 20),
                           Text(
                             "Transactions on ${DateFormat('dd MMM yyyy').format(_selectedDay!)}",
-                            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54),
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(height: 10),
-
-                          Expanded(
-                            child: _buildTransactionList(),
-                          ),
+                          const SizedBox(height: 8),
+                          Expanded(child: _buildTransactionList()),
                         ],
                       ),
                     ),
@@ -263,59 +223,19 @@ class _CalendarPageState extends State<CalendarPage> {
     final events = _getEventsForDay(_selectedDay!);
 
     if (events.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.notes, size: 50, color: Colors.grey[300]),
-            const SizedBox(height: 8),
-            Text("No transactions", style: GoogleFonts.poppins(color: Colors.grey)),
-          ],
-        ),
-      );
+      return Center(child: Text("No transactions", style: GoogleFonts.poppins(color: Colors.grey)));
     }
 
     return ListView.builder(
       itemCount: events.length,
-      itemBuilder: (context, index) {
-        final transaction = events[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade100),
-            boxShadow: [
-              BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2)),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: transaction.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(transaction.icon, color: transaction.color, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  transaction.title,
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-              ),
-              Text(
-                NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(transaction.amount),
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: transaction.isExpense ? Colors.red : Colors.green,
-                ),
-              ),
-            ],
+      itemBuilder: (context, i) {
+        final t = events[i];
+        return ListTile(
+          leading: Icon(t.icon, color: t.color),
+          title: Text(t.title, style: GoogleFonts.poppins()),
+          trailing: Text(
+            NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(t.amount),
+            style: GoogleFonts.poppins(color: t.isExpense ? Colors.red : Colors.green),
           ),
         );
       },
