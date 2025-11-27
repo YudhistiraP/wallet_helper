@@ -47,7 +47,17 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text("Not logged in."),
+        ),
+      );
+    }
+
+    final uid = user.uid;
 
     Color yellowColor = const Color(0xFFFFF78A);
     Color peachColor = const Color(0xFFF6A987);
