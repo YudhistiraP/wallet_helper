@@ -11,6 +11,7 @@ import 'calendar_page.dart';
 import 'statistic_pages/statistics_page.dart';
 import 'settings_page.dart';
 import 'wallet_pages/wallet_page.dart';
+import 'calculator.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -49,7 +50,6 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-
     if (user == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacementNamed(context, '/login');
@@ -60,7 +60,6 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-
     final uid = user.uid;
 
     Color yellowColor = const Color(0xFFFFF78A);
@@ -69,7 +68,6 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: yellowColor,
-
       appBar: AppBar(
         title: const Text("WalletHelper"),
         actions: [
@@ -82,7 +80,6 @@ class _HomePageState extends State<HomePage> {
           )
         ],
       ),
-
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -112,7 +109,8 @@ class _HomePageState extends State<HomePage> {
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const SettingsPage()),
+                      MaterialPageRoute(
+                          builder: (context) => const SettingsPage()),
                     ),
                     child: Container(
                       decoration: BoxDecoration(
@@ -132,7 +130,6 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-
             BalanceCard(
               formattedDate: formattedDate,
               onPrevMonth: () => _changeMonth(-1),
@@ -142,7 +139,6 @@ class _HomePageState extends State<HomePage> {
               totalIncome: 0,
               totalExpense: 0,
             ),
-
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -179,7 +175,6 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ),
-
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
@@ -191,7 +186,8 @@ class _HomePageState extends State<HomePage> {
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator());
+                            return const Center(
+                                child: CircularProgressIndicator());
                           }
 
                           if (!snapshot.hasData ||
@@ -208,8 +204,8 @@ class _HomePageState extends State<HomePage> {
                             const EdgeInsets.symmetric(horizontal: 20),
                             itemCount: docs.length,
                             itemBuilder: (context, index) {
-                              final d = docs[index].data()
-                              as Map<String, dynamic>;
+                              final d =
+                              docs[index].data() as Map<String, dynamic>;
                               final title = d['title'];
                               final amount = d['amount'];
                               final type = d['type'];
@@ -227,8 +223,7 @@ class _HomePageState extends State<HomePage> {
                                 color: type == "income"
                                     ? Colors.green
                                     : Colors.redAccent,
-                                dateStr:
-                                DateFormat('dd MMM yyyy').format(date),
+                                dateStr: DateFormat('dd MMM yyyy').format(date),
                               );
                             },
                           );
@@ -242,9 +237,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-
-      floatingActionButtonLocation:
-      FloatingActionButtonLocation.endFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: SizedBox(
@@ -252,8 +245,10 @@ class _HomePageState extends State<HomePage> {
           height: 60,
           child: FloatingActionButton(
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const AddNotePage()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CalculatorPage()),
+              );
             },
             backgroundColor: const Color(0xFFFDE047),
             shape: RoundedRectangleBorder(
@@ -263,7 +258,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -331,7 +325,8 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: const BoxDecoration(color: Colors.white),
         child: Row(
           children: [
@@ -363,9 +358,8 @@ class _HomePageState extends State<HomePage> {
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: amount < 0
-                    ? const Color(0xFFFF5252)
-                    : Colors.green,
+                color:
+                amount < 0 ? const Color(0xFFFF5252) : Colors.green,
               ),
             ),
           ],
