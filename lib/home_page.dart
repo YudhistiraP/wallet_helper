@@ -49,13 +49,17 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) {
-      return const Scaffold(
-        body: Center(
-          child: Text("Not logged in."),
-        ),
-      );
-    }
+    
+	if (user == null) {
+  		WidgetsBinding.instance.addPostFrameCallback((_) {
+    	Navigator.pushReplacementNamed(context, '/login');
+  	});
+
+  	return const Scaffold(
+    	body: Center(child: CircularProgressIndicator()),
+  	);
+	}
+
 
     final uid = user.uid;
 
