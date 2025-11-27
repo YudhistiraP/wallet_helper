@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
-import 'login_page.dart'; // Import Login Page untuk navigasi setelah logout
-import 'wallet_pages/wallet_page.dart'; // Import Wallet Page
-import 'statistic_pages/statistics_page.dart'; // Import Statistics Page
+import 'package:firebase_auth/firebase_auth.dart';
+import 'login_page.dart';
+import 'wallet_pages/wallet_page.dart';
+import 'statistic_pages/statistics_page.dart';
+import 'service/font_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -13,12 +14,10 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  // State untuk Bottom Nav (Index 3 adalah Settings)
+
   int _bottomNavIndex = 3;
 
-  // Fungsi Logout
   Future<void> _logout() async {
-    // 1. Tampilkan Dialog Konfirmasi
     bool? confirm = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -39,12 +38,10 @@ class _SettingsPageState extends State<SettingsPage> {
     );
 
     if (confirm == true) {
-      // 2. Proses Logout Firebase
       await FirebaseAuth.instance.signOut();
 
       if (!mounted) return;
 
-      // 3. Kembali ke Halaman Login (Hapus semua route sebelumnya)
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -53,21 +50,19 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  // Logika Navigasi Bottom Bar
   void _onBottomNavTap(int index) {
-    if (index == 3) return; // Sedang di halaman ini
+    if (index == 3) return;
 
     if (index == 0) {
-      // Kembali ke Home (Pop sampai awal)
       Navigator.popUntil(context, (route) => route.isFirst);
-    } else if (index == 1) {
-      // Navigasi ke Wallet
+    }
+    else if (index == 1) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const WalletPage()),
       ).then((_) => setState(() => _bottomNavIndex = 3));
-    } else if (index == 2) {
-      // Ke Statistics
+    }
+    else if (index == 2) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const StatisticsPage()),
@@ -80,7 +75,6 @@ class _SettingsPageState extends State<SettingsPage> {
     Color yellowColor = const Color(0xFFFFF78A);
     Color peachColor = const Color(0xFFF6A987);
 
-    // Ambil User Data dari Firebase (Opsional)
     final User? user = FirebaseAuth.instance.currentUser;
     final String displayName = user?.displayName ?? "Ripia";
     final String email = user?.email ?? "user@example.com";
@@ -88,7 +82,6 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: yellowColor,
 
-      // AppBar Transparan
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -105,12 +98,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
       body: Column(
         children: [
-          // --- 1. BAGIAN PROFIL (ATAS) ---
+
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),
             child: Column(
               children: [
-                // Avatar dengan Icon Edit
                 Stack(
                   children: [
                     Container(
@@ -123,7 +115,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         radius: 40,
                         backgroundColor: Colors.grey,
                         child: Icon(Icons.person, size: 40, color: Colors.white),
-                        // Jika ada gambar: backgroundImage: NetworkImage(user.photoURL!),
                       ),
                     ),
                     Positioned(
@@ -154,7 +145,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
 
-          // --- 2. MENU LIST (BAWAH) ---
           Expanded(
             child: Container(
               width: double.infinity,
@@ -170,14 +160,27 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // GRUP: GENERAL
+
                     _buildSectionHeader("General"),
+
+                    /// ✅ FIXED FONT SIZE
+                    FutureBuilder<String>(
+                      future: FontService.getFontSize(),
+                      builder: (context, snapshot) {
+                        return _buildMenuItem(
+                          Icons.text_fields,
+                          "Font Size",
+                          snapshot.data ?? "Medium",
+                          onTap: _openFontDialog,
+                        );
+                      },
+                    ),
+
                     _buildMenuItem(Icons.location_on, "Bank Location", "730m"),
                     _buildMenuItem(Icons.account_balance_wallet, "My Wallet", "Connect your wallet"),
 
                     const SizedBox(height: 20),
 
-                    // GRUP: ACCOUNT
                     _buildSectionHeader("Account"),
                     _buildMenuItem(Icons.person_outline, "My Account", ""),
                     _buildMenuItem(Icons.notifications_outlined, "Notification", ""),
@@ -186,7 +189,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
                     const SizedBox(height: 30),
 
-                    // TOMBOL LOGOUT
                     SizedBox(
                       width: double.infinity,
                       height: 55,
@@ -218,7 +220,6 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
 
-      // --- BOTTOM NAVIGATION BAR ---
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _bottomNavIndex,
         onTap: _onBottomNavTap,
@@ -233,13 +234,12 @@ class _SettingsPageState extends State<SettingsPage> {
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), label: "Wallet"),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Statistics"),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Settings"), // Icon filled untuk active state
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Settings"),
         ],
       ),
     );
   }
 
-  // Widget Helper: Judul Section (General, Account)
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -254,42 +254,55 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // Widget Helper: Item Menu (Kotak Putih)
-  Widget _buildMenuItem(IconData icon, String title, String subtitle) {
+  Widget _buildMenuItem(
+      IconData icon,
+      String title,
+      String subtitle, {
+        VoidCallback? onTap,
+      }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5),
         ],
       ),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF78A).withOpacity(0.5), // Kuning transparan
+            color: const Color(0xFFFFF78A).withOpacity(0.5),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: Colors.black87, size: 20),
         ),
-        title: Text(
-          title,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
-        ),
+        title: Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14)),
         subtitle: subtitle.isNotEmpty
             ? Text(subtitle, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey))
             : null,
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-        onTap: () {
-          // Tambahkan logika navigasi menu di sini jika perlu
-        },
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: onTap ?? () {},
       ),
     );
   }
+
+  void _openFontDialog() async {
+    String? selected = await showMenu(
+      context: context,
+      position: const RelativeRect.fromLTRB(200, 200, 10, 10),
+      items: const [
+        PopupMenuItem(value: "Small", child: Text("Small")),
+        PopupMenuItem(value: "Medium", child: Text("Medium")),
+        PopupMenuItem(value: "Large", child: Text("Large")),
+      ],
+    );
+
+    if (selected != null) {
+      await FontService.saveFontSize(selected);
+      setState(() {});
+    }
+  }
+
 }

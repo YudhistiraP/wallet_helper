@@ -5,8 +5,11 @@ import 'firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'home_page.dart';
-import 'login_page.dart';
 import 'splash_screen.dart';
+import 'login_page.dart';
+import 'service/font_service.dart';
+
+String globalFontSize = "Medium";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,20 +20,42 @@ void main() async {
 
   await initializeDateFormatting('id', null);
 
-  runApp(const MyApp());
+
+  runApp(MyApp());
+  FontService.getFontSize().then((value) {
+    globalFontSize = value;
+  });
 }
 
-class MyApp extends StatelessWidget {
+double getFontSize(String size) {
+  switch (size) {
+    case "Small":
+      return 12;
+    case "Large":
+      return 20;
+    default:
+      return 16;
+  }
+}
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Wallet Helper',
       theme: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(),
         useMaterial3: true,
+        textTheme: GoogleFonts.poppinsTextTheme().apply(
+          fontSizeFactor: getFontSize(globalFontSize) / 16,
+        ),
       ),
       initialRoute: '/login',
       routes: {
@@ -40,4 +65,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
