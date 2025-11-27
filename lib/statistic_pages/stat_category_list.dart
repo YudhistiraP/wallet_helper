@@ -26,12 +26,13 @@ class StatCategoryList extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         ListView.builder(
-          shrinkWrap: true, // PENTING: Agar bisa di dalam SingleChildScrollView
-          physics: const NeverScrollableScrollPhysics(), // Scroll ikut parent
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: data.length,
           itemBuilder: (context, index) {
             final item = data[index];
-            final percentage = (item.amount / totalAmount);
+            final double percentage =
+            totalAmount == 0 ? 0 : (item.amount / totalAmount);
 
             return Container(
               margin: const EdgeInsets.only(bottom: 15),
@@ -67,7 +68,9 @@ class StatCategoryList extends StatelessWidget {
                               style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
-                                  color: isExpense ? Colors.red : Colors.green),
+                                  color: isExpense
+                                      ? Colors.red
+                                      : Colors.green),
                             ),
                           ],
                         ),
