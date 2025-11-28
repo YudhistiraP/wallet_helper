@@ -146,14 +146,25 @@ class _WalletPageState extends State<WalletPage> {
                 }
 
                 final d = snapshot.data!;
-                final balance = (d['balance'] ?? 0).toDouble();
-                final income = (d['income'] ?? 0).toDouble();
-                final expenses = (d['expenses'] ?? 0).toDouble();
-                final savedCurrency = d['currency'] ?? 'IDR';
+                // Gunakan .data() sebagai Map untuk menghindari error jika field tidak ada
+                final dataMap = d.data() as Map<String, dynamic>? ?? {};
+
+                final balance = (dataMap['balance'] ?? 0).toDouble();
+                final income = (dataMap['income'] ?? 0).toDouble();
+                final expenses = (dataMap['expenses'] ?? 0).toDouble();
+                final savedCurrency = dataMap['currency'] ?? 'IDR';
 
                 if (_selectedCurrencyCode != savedCurrency) {
-                  _selectedCurrencyCode = savedCurrency;
-                  _currentExchangeRate = _exchangeRates[savedCurrency] ?? 1.0;
+                  // Update local state if remote differs, but be careful of loops if we didn't initiate it
+                  // Here we just sync local display to remote
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted && _selectedCurrencyCode != savedCurrency) {
+                       setState(() {
+                        _selectedCurrencyCode = savedCurrency;
+                        _currentExchangeRate = _exchangeRates[savedCurrency] ?? 1.0;
+                      });
+                    }
+                  });
                 }
 
                 final data = WalletData(
